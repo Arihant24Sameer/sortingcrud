@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { Button } from "react-bootstrap";
+import { Button, Table } from "react-bootstrap";
 import Modal from "../component/search";
 
 const PAGE_SIZE = 5;
@@ -51,9 +51,9 @@ const Details = () => {
     updatedDetails.splice(index, 1);
     setDetails(updatedDetails);
   };
+
   const handleSearch = () => {
     const foundItem = sortedData.find((item) => item.name === search);
-    console.log(foundItem, "item search ");
     setSearchResult(foundItem ? [foundItem] : []);
     setShow(true);
   };
@@ -69,8 +69,6 @@ const Details = () => {
 
   let sortedData = details.sort((a, b) => a.name.localeCompare(b.name));
 
-  console.log(sortedData, "sorted array");
-
   const paginatedDetails = sortedData.slice(startIndex, endIndex);
 
   const changePage = (page) => {
@@ -79,33 +77,33 @@ const Details = () => {
 
   return (
     <div className="container mt-4">
-<nav className="navbar navbar-light bg-light">
-  <div className="form-inline">
-    <input
-      className=""
-      type="search"
-      placeholder="Search"
-      aria-label="Search"
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-    />
+      <nav className="navbar navbar-light bg-light">
+        <div className="form-inline">
+          <input
+            className=""
+            type="search"
+            placeholder="Search"
+            aria-label="Search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-    <Button type="button" onClick={handleSearch}>
-      Search
-    </Button>
+          <Button type="button" onClick={handleSearch}>
+            Search
+          </Button>
 
-    <Modal show={show} onClose={() => setShow(false)}>
-      <h2>Search Result:</h2>
-      <ul className="list-group">
-        {searchResult.map((item, index) => (
-          <li key={index} className="list-group-item">
-            {item.name}, {item.email}, {item.phone}
-          </li>
-        ))}
-      </ul>
-    </Modal>
-  </div>
-</nav>
+          <Modal show={show} onClose={() => setShow(false)}>
+            <h2>Search Result:</h2>
+            <ul className="list-group">
+              {searchResult.map((item, index) => (
+                <li key={index} className="list-group-item">
+                  {item.name}, {item.email}, {item.phone}
+                </li>
+              ))}
+            </ul>
+          </Modal>
+        </div>
+      </nav>
 
       <form onSubmit={formik.handleSubmit}>
         <div className="mb-2">
@@ -157,45 +155,66 @@ const Details = () => {
           {editIndex !== null ? "Update" : "Submit"}
         </Button>
       </form>
-      <div>
-        <h2>Submitted Details:</h2>
-        <ul className="list-group">
-          {paginatedDetails.map((item, index) => (
-            <li key={index} className="list-group-item">
-              {item.name}, {item.email}, {item.phone}
-              <Button
-                className="btn btn-danger ml-2"
-                onClick={() => deleteItem(startIndex + index)}
-              >
-                Delete
-              </Button>
-              <Button
-                className="btn btn-warning ml-2"
-                onClick={() => editData(startIndex + index)}
-              >
-                Edit
-              </Button>
-            </li>
-          ))}
-        </ul>
 
-        <div className="mt-3">
-          <Button
-            className="btn btn-secondary mr-2"
-            onClick={() => changePage(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            Previous Page
-          </Button>
-          <Button
-            className="btn btn-secondary"
-            onClick={() => changePage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next Page
-          </Button>
-        </div>
+      <div>
+        {details.length > 0 && (
+          <div>
+            <h2>Submitted Details:</h2>
+            <Table striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedDetails.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.name}</td>
+                    <td>{item.email}</td>
+                    <td>{item.phone}</td>
+                    <td>
+                      <Button
+                        variant="danger"
+                        onClick={() => deleteItem(startIndex + index)}
+                      >
+                        Delete
+                      </Button>
+                      <Button
+                        variant="warning"
+                        onClick={() => editData(startIndex + index)}
+                        className="ml-2"
+                      >
+                        Edit
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+
+            <div className="mt-3">
+              <Button
+                className="btn btn-secondary mr-2"
+                onClick={() => changePage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous Page
+              </Button>
+              <Button
+                className="btn btn-secondary"
+                onClick={() => changePage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Next Page
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
+
       <Modal show={show} onClose={() => setShow(false)}>
         <h2>Search Result:</h2>
         <ul className="list-group">
