@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Button, Table } from "react-bootstrap";
-import Modal from "../component/search";
 
 const PAGE_SIZE = 5;
 
@@ -13,11 +12,16 @@ const Details = () => {
   const [search, setSearch] = useState("");
 
   const [searchResult, setSearchResult] = useState([]);
-  const [show, setShow] = useState(false);
 
   const validationSchema = Yup.object().shape({
-    name: Yup.string().required("Name is required"),
-    email: Yup.string().email("Invalid email").required("Email is required"),
+    name: Yup.string()
+    .matches(/^[A-Za-z\s]+$/, "Name should not contain numbers")
+    .required("Name is required"),
+    email: Yup.string()
+      .email("Invalid email")
+      .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, "Enter valid email address")
+      .min(2, "email adress should contain atleast 2")
+      .required("Email is required"),
     phone: Yup.string()
       .matches(/^\d+$/, "Phone should contain only numbers")
       .min(10, "Phone should be at least 10 digits")
@@ -55,7 +59,6 @@ const Details = () => {
   const handleSearch = () => {
     const foundItem = sortedData.find((item) => item.name === search);
     setSearchResult(foundItem ? [foundItem] : []);
-    setShow(true);
   };
 
   const editData = (index) => {
@@ -91,17 +94,6 @@ const Details = () => {
           <Button type="button" onClick={handleSearch}>
             Search
           </Button>
-
-          <Modal show={show} onClose={() => setShow(false)}>
-            <h2>Search Result:</h2>
-            <ul className="list-group">
-              {searchResult.map((item, index) => (
-                <li key={index} className="list-group-item">
-                  {item.name}, {item.email}, {item.phone}
-                </li>
-              ))}
-            </ul>
-          </Modal>
         </div>
       </nav>
 
@@ -142,9 +134,14 @@ const Details = () => {
             placeholder="Phone"
             name="phone"
             className="form-control"
-            onChange={formik.handleChange}
             onBlur={formik.handleBlur}
             value={formik.values.phone}
+            onChange={(e) => {
+              const inputValue = e.target.value.replace(/\D/g, "");
+              formik.handleChange(e);
+              formik.setFieldValue("phone", inputValue.substring(0, 10));
+            }}
+            maxLength="10"
           />
           {formik.touched.phone && formik.errors.phone && (
             <div style={{ color: "red" }}>{formik.errors.phone}</div>
@@ -155,6 +152,45 @@ const Details = () => {
           {editIndex !== null ? "Update" : "Submit"}
         </Button>
       </form>
+      {searchResult.length > 0 && (
+        <div>
+          <h2>Search Result:</h2>
+          <Table striped bordered hover>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {searchResult.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.name}</td>
+                  <td>{item.email}</td>
+                  <td>{item.phone}</td>
+                  <td>
+                    <Button
+                      variant="danger"
+                      onClick={() => deleteItem(details.indexOf(item))}
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="warning"
+                      onClick={() => editData(details.indexOf(item))}
+                      className="ml-2"
+                    >
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
 
       <div>
         {details.length > 0 && (
@@ -214,17 +250,6 @@ const Details = () => {
           </div>
         )}
       </div>
-
-      <Modal show={show} onClose={() => setShow(false)}>
-        <h2>Search Result:</h2>
-        <ul className="list-group">
-          {searchResult.map((item, index) => (
-            <li key={index} className="list-group-item">
-              {item.name}, {item.email}, {item.phone}
-            </li>
-          ))}
-        </ul>
-      </Modal>
     </div>
   );
 };
