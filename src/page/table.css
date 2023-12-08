@@ -1,54 +1,48 @@
-/* Add these styles in your CSS file or in your component */
-
 .container {
-    max-width: 800px;
-    margin: auto;
-  }
-  
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
-  
-  th, td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
-  }
-  
-  th {
-    background-color: #f2f2f2;
-  }
-  
-  .form-control {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 10px;
-  }
-  
-  .btn {
-    margin-right: 5px;
-  }
-  
-  /* Optional: Add some margin and padding to improve spacing */
-  .mb-2 {
-    margin-bottom: 20px;
-  }
-  
-  /* Optional: Add some margin to the form */
-  form {
-    margin-bottom: 20px;
-  }
-  
-  /* Optional: Style for the search input */
-  .navbar-light input[type="search"] {
-    padding: 8px;
-    margin-right: 5px;
-  }
-  
-  /* Optional: Style for the search button */
-  .navbar-light button {
-    padding: 8px;
-  }
-  
+  max-width: 650px;
+  margin: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th,
+td {
+  border: 1px solid #ddd;
+  padding: 12px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+
+.btn {
+  margin-right: 5px;
+}
+
+.mb-2 {
+  margin-bottom: 20px;
+}
+
+form {
+  margin-bottom: 20px;
+}
+
+.navbar-light input[type="search"] {
+  padding: 8px;
+  margin-right: 5px;
+}
+
+.navbar-light button {
+  padding: 1px;
+}

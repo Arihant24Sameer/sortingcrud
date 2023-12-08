@@ -1,0 +1,84 @@
+/* styles.css */
+
+.container {
+  max-width: 800px;
+  margin: auto;
+}
+
+.search-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background-color: #f8f9fa;
+}
+
+.search-input {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+.form-box {
+  background-color: #fff;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
+
+.form-box h2 {
+  margin-bottom: 20px;
+}
+
+.form-box hr {
+  margin-top: 5px;
+  margin-bottom: 20px;
+  border: 0;
+  border-top: 1px solid #ddd;
+}
+
+.form-control {
+  margin-bottom: 15px;
+}
+
+.error {
+  border-color: #dc3545 !important;
+}
+
+.submit-button {
+  background-color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.table-container {
+  margin-bottom: 20px;
+}
+
+.no-results-message {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.pagination-buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* table.css */
+
+.table {
+  margin-top: 20px;
+}
+
+th, td {
+  text-align: center;
+}
+
+.table th, .table td {
+  vertical-align: middle;
+}
+
+/* Adjust the table styling as needed */

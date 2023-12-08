@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { Button, Table } from "react-bootstrap";
-
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./table.css";
+import "./styles.css";
 const PAGE_SIZE = 5;
 
 const Details = () => {
@@ -10,17 +12,21 @@ const Details = () => {
   const [editIndex, setEditIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
-
   const [searchResult, setSearchResult] = useState([]);
 
   const validationSchema = Yup.object().shape({
-    name: Yup.string()
-    .matches(/^[A-Za-z\s]+$/, "Name should not contain numbers")
-    .required("Name is required"),
+    firstName: Yup.string()
+      .matches(/^[A-Za-z\s]+$/, "Invalid name")
+      .trim()
+      .required("First Name is required"),
+    lastName: Yup.string()
+      .matches(/^[A-Za-z\s]+$/, "Invalid name")
+      .trim(),
     email: Yup.string()
       .email("Invalid email")
       .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, "Enter valid email address")
-      .min(2, "email adress should contain atleast 2")
+      .trim()
+      .min(2, "Email address should contain at least 2")
       .required("Email is required"),
     phone: Yup.string()
       .matches(/^\d+$/, "Phone should contain only numbers")
@@ -31,21 +37,25 @@ const Details = () => {
 
   const formik = useFormik({
     initialValues: {
-      name: "",
+      firstName: "",
+      lastName: "",
       email: "",
       phone: "",
     },
     validationSchema,
     onSubmit: (values) => {
+      const fullName = `${values.firstName} ${values.lastName || ""}`;
+
       if (editIndex !== null) {
         const updatedDetails = [...details];
-        updatedDetails[editIndex] = { ...values };
+        updatedDetails[editIndex] = { ...values, name: fullName };
         setDetails(updatedDetails);
         setEditIndex(null);
       } else {
-        setDetails([...details, { ...values }]);
+        setDetails([...details, { ...values, name: fullName }]);
       }
 
+      setSearchResult([]); // Clear searchResult
       formik.resetForm();
     },
   });
@@ -57,171 +67,251 @@ const Details = () => {
   };
 
   const handleSearch = () => {
-    const foundItem = sortedData.find((item) => item.name === search);
-    setSearchResult(foundItem ? [foundItem] : []);
+    const searchTerms = search.toLowerCase().split(" ");
+
+    const foundItems = details.filter((item) =>
+      searchTerms.every(
+        (term) =>
+          item.firstName.toLowerCase().includes(term) ||
+          item.lastName.toLowerCase().includes(term) ||
+          item.email.toLowerCase().includes(term) ||
+          item.phone.toLowerCase().includes(term)
+      )
+    );
+
+    setSearchResult(foundItems);
   };
 
   const editData = (index) => {
     setEditIndex(index);
-    formik.setValues(details[index]);
+    const { firstName, lastName, email, phone } = details[index];
+    formik.setValues({ firstName, lastName, email, phone });
   };
 
-  const totalPages = Math.ceil(details.length / PAGE_SIZE);
-  const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const endIndex = startIndex + PAGE_SIZE;
+  const paginatedDetails = () => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+    return details.slice(startIndex, endIndex);
+  };
 
-  let sortedData = details.sort((a, b) => a.name.localeCompare(b.name));
+  const totalDetailPages = Math.ceil(details.length / PAGE_SIZE);
 
-  const paginatedDetails = sortedData.slice(startIndex, endIndex);
+  const paginatedSearchResult = () => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+    return searchResult.slice(startIndex, endIndex);
+  };
+
+  const totalSearchPages = Math.ceil(searchResult.length / PAGE_SIZE);
 
   const changePage = (page) => {
     setCurrentPage(page);
   };
 
   return (
-    <div className="container mt-4">
-      <nav className="navbar navbar-light bg-light">
-        <div className="form-inline">
-          <input
-            className=""
-            type="search"
-            placeholder="Search"
-            aria-label="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+    <div className="container mt-5">
+      {details.length > 0 && (
+        <nav className="navbar navbar-light bg-light search-box">
+          <div className="d-flex">
+            <input
+              className="form-control me-2"
+              type="search"
+              placeholder="Search"
+              aria-label="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Button variant="primary" className="mb-2" onClick={handleSearch}>
+              Search
+            </Button>
+          </div>
+        </nav>
+      )}
 
-          <Button type="button" onClick={handleSearch}>
-            Search
+      <form onSubmit={formik.handleSubmit} className="form-box">
+        <div className="mb-3">
+          <h2>Register Now</h2>
+          <hr></hr>
+          <div className="mb-3 row">
+            <div className="col-sm-6">
+              <input
+                type="text"
+                placeholder="First Name"
+                name="firstName"
+                className={`form-control ${
+                  formik.touched.firstName && formik.errors.firstName
+                    ? "error"
+                    : ""
+                }`}
+                onChange={(e) => {
+                  const inputValue = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                  formik.handleChange({
+                    target: {
+                      name: "firstName",
+                      value: inputValue,
+                    },
+                  });
+                }}
+                onBlur={formik.handleBlur}
+                value={formik.values.firstName}
+              />
+              {formik.touched.firstName && formik.errors.firstName && (
+                <div className="text-danger">{formik.errors.firstName}</div>
+              )}
+            </div>
+            <div className="col-sm-6">
+              <input
+                type="text"
+                placeholder="Last Name(optional)"
+                name="lastName"
+                className={`form-control ${
+                  formik.touched.lastName && formik.errors.lastName
+                    ? "error"
+                    : ""
+                }`}
+                onChange={(e) => {
+                  const inputValue = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                  formik.handleChange({
+                    target: {
+                      name: "lastName",
+                      value: inputValue,
+                    },
+                  });
+                }}
+                onBlur={formik.handleBlur}
+                value={formik.values.lastName}
+              />
+              {formik.touched.lastName && formik.errors.lastName && (
+                <div className="text-danger">{formik.errors.lastName}</div>
+              )}
+            </div>
+          </div>
+
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="Email"
+              name="email"
+              className={`form-control ${
+                formik.touched.email && formik.errors.email ? "error" : ""
+              }`}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              value={formik.values.email}
+            />
+            {formik.touched.email && formik.errors.email && (
+              <div className="text-danger">{formik.errors.email}</div>
+            )}
+          </div>
+
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="Phone"
+              name="phone"
+              className={`form-control ${
+                formik.touched.phone && formik.errors.phone ? "error" : ""
+              }`}
+              onBlur={formik.handleBlur}
+              value={formik.values.phone}
+              onChange={(e) => {
+                const inputValue = e.target.value.replace(/\D/g, "");
+                formik.handleChange(e);
+                formik.setFieldValue("phone", inputValue.substring(0, 10));
+              }}
+              maxLength="10"
+            />
+            {formik.touched.phone && formik.errors.phone && (
+              <div className="text-danger">{formik.errors.phone}</div>
+            )}
+          </div>
+
+          <Button variant="primary" className="mb-2" type="submit">
+            {editIndex !== null ? "Update" : "Submit"}
           </Button>
         </div>
-      </nav>
-
-      <form onSubmit={formik.handleSubmit}>
-        <div className="mb-2">
-          <input
-            type="text"
-            placeholder="Name"
-            name="name"
-            className="form-control"
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            value={formik.values.name}
-          />
-          {formik.touched.name && formik.errors.name && (
-            <div style={{ color: "red" }}>{formik.errors.name}</div>
-          )}
-        </div>
-
-        <div className="mb-2">
-          <input
-            type="text"
-            placeholder="Email"
-            name="email"
-            className="form-control"
-            onChange={formik.handleChange}
-            onBlur={formik.handleBlur}
-            value={formik.values.email}
-          />
-          {formik.touched.email && formik.errors.email && (
-            <div style={{ color: "red" }}>{formik.errors.email}</div>
-          )}
-        </div>
-
-        <div className="mb-2">
-          <input
-            type="number"
-            placeholder="Phone"
-            name="phone"
-            className="form-control"
-            onBlur={formik.handleBlur}
-            value={formik.values.phone}
-            onChange={(e) => {
-              const inputValue = e.target.value.replace(/\D/g, "");
-              formik.handleChange(e);
-              formik.setFieldValue("phone", inputValue.substring(0, 10));
-            }}
-            maxLength="10"
-          />
-          {formik.touched.phone && formik.errors.phone && (
-            <div style={{ color: "red" }}>{formik.errors.phone}</div>
-          )}
-        </div>
-
-        <Button className="btn btn-primary mb-2" type="submit">
-          {editIndex !== null ? "Update" : "Submit"}
-        </Button>
       </form>
-      {searchResult.length > 0 && (
-        <div>
+
+      {searchResult.length > 0 ? (
+        <div className="table-container">
           <h2>Search Result:</h2>
           <Table striped bordered hover>
             <thead>
               <tr>
-                <th>Name</th>
+                <th>First Name</th>
+                <th>Last Name</th>
                 <th>Email</th>
                 <th>Phone</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {searchResult.map((item, index) => (
+              {paginatedSearchResult().map((item, index) => (
                 <tr key={index}>
-                  <td>{item.name}</td>
+                  <td>{item.firstName}</td>
+                  <td>{item.lastName}</td>
                   <td>{item.email}</td>
                   <td>{item.phone}</td>
-                  <td>
-                    <Button
-                      variant="danger"
-                      onClick={() => deleteItem(details.indexOf(item))}
-                    >
-                      Delete
-                    </Button>
-                    <Button
-                      variant="warning"
-                      onClick={() => editData(details.indexOf(item))}
-                      className="ml-2"
-                    >
-                      Edit
-                    </Button>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </Table>
-        </div>
-      )}
 
-      <div>
-        {details.length > 0 && (
-          <div>
+          {searchResult.length > PAGE_SIZE && (
+            <div className="pagination-buttons">
+              <Button
+                variant="secondary"
+                className="me-2"
+                onClick={() => changePage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                Previous Page
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => changePage(currentPage + 1)}
+                disabled={currentPage === totalSearchPages}
+              >
+                Next Page
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        details.length > 0 && (
+          <div className="table-container">
             <h2>Submitted Details:</h2>
             <Table striped bordered hover>
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th>First Name</th>
+                  <th>Last Name</th>
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedDetails.map((item, index) => (
+                {paginatedDetails().map((item, index) => (
                   <tr key={index}>
-                    <td>{item.name}</td>
+                    <td>{item.firstName}</td>
+                    <td>{item.lastName}</td>
                     <td>{item.email}</td>
                     <td>{item.phone}</td>
                     <td>
                       <Button
                         variant="danger"
-                        onClick={() => deleteItem(startIndex + index)}
+                        onClick={() =>
+                          deleteItem((currentPage - 1) * PAGE_SIZE + index)
+                        }
                       >
                         Delete
                       </Button>
                       <Button
                         variant="warning"
-                        onClick={() => editData(startIndex + index)}
-                        className="ml-2"
+                        onClick={() =>
+                          editData((currentPage - 1) * PAGE_SIZE + index)
+                        }
+                        className="ms-2"
                       >
                         Edit
                       </Button>
@@ -231,25 +321,28 @@ const Details = () => {
               </tbody>
             </Table>
 
-            <div className="mt-3">
-              <Button
-                className="btn btn-secondary mr-2"
-                onClick={() => changePage(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous Page
-              </Button>
-              <Button
-                className="btn btn-secondary"
-                onClick={() => changePage(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                Next Page
-              </Button>
-            </div>
+            {details.length > PAGE_SIZE && (
+              <div className="pagination-buttons">
+                <Button
+                  variant="secondary"
+                  className="me-2"
+                  onClick={() => changePage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous Page
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => changePage(currentPage + 1)}
+                  disabled={currentPage === totalDetailPages}
+                >
+                  Next Page
+                </Button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        )
+      )}
     </div>
   );
 };
