@@ -14,8 +14,7 @@ const Details = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchResult, setSearchResult] = useState([]);
-  const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-
+  const [msg, setMsg] = useState(false);
   const validationSchema = Yup.object().shape({
     firstName: Yup.string()
       .matches(/^[A-Za-z\s]+$/, "Invalid name")
@@ -26,9 +25,12 @@ const Details = () => {
       .trim(),
     email: Yup.string()
       .email("Invalid email")
-      .matches(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, "Enter valid email address")
+      .matches(
+        /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
+        "Enter a valid email address"
+      )
       .trim()
-      .min(2, "Email address should contain at least 2")
+      .min(2, "Email address should contain at least 2 characters")
       .required("Email is required"),
     phone: Yup.string()
       .matches(/^\d+$/, "Phone should contain only numbers")
@@ -66,22 +68,33 @@ const Details = () => {
     const updatedDetails = [...details];
     updatedDetails.splice(index, 1);
     setDetails(updatedDetails);
+
+    const newTotalDetailPages = Math.ceil(updatedDetails.length / PAGE_SIZE);
+    if (currentPage > newTotalDetailPages) {
+      setCurrentPage(newTotalDetailPages);
+    }
   };
 
   const handleSearch = () => {
-    const searchTerms = search.toLowerCase().split(" ");
+    const searchTerms = search.toLowerCase().trim().split(" ");
 
     const foundItems = details.filter((item) =>
-      searchTerms.every(
-        (term) =>
-          item.firstName.toLowerCase().startsWith(term) ||
-          item.lastName.toLowerCase().startsWith(term) ||
-          item.email.toLowerCase().startsWith(term) ||
-          item.phone.toLowerCase().startsWith(term)
+      searchTerms.every((term) =>
+        Object.values(item).some((value) =>
+          String(value).toLowerCase().includes(term)
+        )
       )
     );
 
+    if (foundItems.length === 0) {
+      setMsg(true);
+    } else {
+      setMsg(false);
+    }
     setSearchResult(foundItems);
+    setSearch("");
+
+    setEditIndex(null);
   };
 
   const editData = (index) => {
@@ -95,7 +108,9 @@ const Details = () => {
     const endIndex = startIndex + PAGE_SIZE;
     return sortData.slice(startIndex, endIndex);
   };
+
   const sortData = details.sort((a, b) => a.name.localeCompare(b.name));
+
   const totalDetailPages = Math.ceil(details.length / PAGE_SIZE);
 
   const paginatedSearchResult = () => {
@@ -111,20 +126,116 @@ const Details = () => {
   };
 
   const renderPageNumbers = (totalPages, currentPage) => {
-    const pageNumbers = [];
-    for (let i = 1; i <= totalPages; i++) {
-      pageNumbers.push(
-        <Button
-          key={i}
-          variant={i === currentPage ? "primary" : "secondary"}
-          className="me-2"
-          onClick={() => changePage(i)}
-        >
-          {i}
-        </Button>
+    return (
+      <div className="d-flex justify-content-center mb-3">
+        {Array.from({ length: totalPages }, (_, index) => (
+          <Button
+            key={index + 1}
+            variant={index + 1 === currentPage ? "primary" : "secondary"}
+            className="me-2"
+            onClick={() => changePage(index + 1)}
+          >
+            {index + 1}
+          </Button>
+        ))}
+      </div>
+    );
+  };
+
+  const renderContent = () => {
+    if (details.length === 0) {
+      return null;
+    }
+
+    if (searchResult.length > 0) {
+      return (
+        <div className="table-container">
+          <h2>Search Result:</h2>
+          <Table striped bordered hover>
+            <thead>
+              <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedSearchResult().map((item, index) => (
+                <tr key={index}>
+                  <td>{item.firstName}</td>
+                  <td>{item.lastName}</td>
+                  <td>{item.email}</td>
+                  <td>{item.phone}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          <div className="d-flex justify-content-center mb-2">
+            {renderPageNumbers(totalSearchPages, currentPage)}
+          </div>
+        </div>
+      );
+    } else if (msg === true) {
+      return (
+        <Alert variant="info" className="mt-3">
+          No records found
+        </Alert>
+      );
+    } else {
+      return (
+        <div className="table-container">
+          <h2>Submitted Details:</h2>
+          <Table striped bordered hover>
+            <thead>
+              <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedDetails().map((item, index) => (
+                <tr key={index}>
+                  <td>{item.firstName}</td>
+                  <td>{item.lastName}</td>
+                  <td>{item.email}</td>
+                  <td>{item.phone}</td>
+                  <td>
+                    <Button
+                      variant="danger"
+                      onClick={() =>
+                        deleteItem((currentPage - 1) * PAGE_SIZE + index)
+                      }
+                    >
+                      Delete
+                    </Button>
+                    <Button
+                      variant="warning"
+                      onClick={() =>
+                        editData((currentPage - 1) * PAGE_SIZE + index)
+                      }
+                      className="ms-2"
+                    >
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+
+          {details.length > PAGE_SIZE && (
+            <div className="d-flex justify-content-center mb-2">
+              {renderPageNumbers(totalDetailPages, currentPage)}
+            </div>
+          )}
+        </div>
       );
     }
-    return pageNumbers;
   };
 
   return (
@@ -194,6 +305,7 @@ const Details = () => {
                 }`}
                 onChange={(e) => {
                   const inputValue = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                  console.log(inputValue, "input value for last name ");
                   formik.handleChange({
                     target: {
                       name: "lastName",
@@ -255,123 +367,7 @@ const Details = () => {
         </div>
       </form>
 
-      {searchResult.length > 0 ? (
-        <div className="table-container">
-          <h2>Search Result:</h2>
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedSearchResult().map((item, index) => (
-                <tr key={index}>
-                  <td>{item.firstName}</td>
-                  <td>{item.lastName}</td>
-                  <td>{item.email}</td>
-                  <td>{item.phone}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-
-          {searchResult.length > PAGE_SIZE && (
-            <div className="pagination-buttons">
-              <Button
-                variant="secondary"
-                className="me-2"
-                onClick={() => changePage(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                Previous Page
-              </Button>
-              {renderPageNumbers(totalSearchPages, currentPage)}
-              <Button
-                variant="secondary"
-                onClick={() => changePage(currentPage + 1)}
-                disabled={currentPage === totalSearchPages}
-              >
-                Next Page
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : searchResult.length === 0 && search !== "" ? (
-        <Alert variant="info" className="mt-3">
-          No records found.
-        </Alert>
-      ) : (
-        details.length > 0 && (
-          <div className="table-container">
-            <h2>Submitted Details:</h2>
-            <Table striped bordered hover>
-              <thead>
-                <tr>
-                  <th>First Name</th>
-                  <th>Last Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedDetails().map((item, index) => (
-                  <tr key={index}>
-                    <td>{item.firstName}</td>
-                    <td>{item.lastName}</td>
-                    <td>{item.email}</td>
-                    <td>{item.phone}</td>
-                    <td>
-                      <Button
-                        variant="danger"
-                        onClick={() =>
-                          deleteItem((currentPage - 1) * PAGE_SIZE + index)
-                        }
-                      >
-                        Delete
-                      </Button>
-                      <Button
-                        variant="warning"
-                        onClick={() =>
-                          editData((currentPage - 1) * PAGE_SIZE + index)
-                        }
-                        className="ms-2"
-                      >
-                        Edit
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-
-            {details.length > PAGE_SIZE && (
-              <div className="pagination-buttons">
-                <Button
-                  variant="secondary"
-                  className="me-2"
-                  onClick={() => changePage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Previous Page
-                </Button>
-                {renderPageNumbers(totalDetailPages, currentPage)}
-                <Button
-                  variant="secondary"
-                  onClick={() => changePage(currentPage + 1)}
-                  disabled={currentPage === totalDetailPages}
-                >
-                  Next Page
-                </Button>
-              </div>
-            )}
-          </div>
-        )
-      )}
+      {renderContent()}
     </div>
   );
 };
