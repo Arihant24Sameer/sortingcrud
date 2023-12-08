@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import { Button, Table } from "react-bootstrap";
+import { Button, Table, Alert } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./table.css";
 import "./styles.css";
+
 const PAGE_SIZE = 5;
 
 const Details = () => {
@@ -13,6 +14,7 @@ const Details = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchResult, setSearchResult] = useState([]);
+  const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
 
   const validationSchema = Yup.object().shape({
     firstName: Yup.string()
@@ -55,7 +57,7 @@ const Details = () => {
         setDetails([...details, { ...values, name: fullName }]);
       }
 
-      setSearchResult([]); // Clear searchResult
+      setSearchResult([]);
       formik.resetForm();
     },
   });
@@ -72,10 +74,10 @@ const Details = () => {
     const foundItems = details.filter((item) =>
       searchTerms.every(
         (term) =>
-          item.firstName.toLowerCase().includes(term) ||
-          item.lastName.toLowerCase().includes(term) ||
-          item.email.toLowerCase().includes(term) ||
-          item.phone.toLowerCase().includes(term)
+          item.firstName.toLowerCase().startsWith(term) ||
+          item.lastName.toLowerCase().startsWith(term) ||
+          item.email.toLowerCase().startsWith(term) ||
+          item.phone.toLowerCase().startsWith(term)
       )
     );
 
@@ -91,9 +93,9 @@ const Details = () => {
   const paginatedDetails = () => {
     const startIndex = (currentPage - 1) * PAGE_SIZE;
     const endIndex = startIndex + PAGE_SIZE;
-    return details.slice(startIndex, endIndex);
+    return sortData.slice(startIndex, endIndex);
   };
-
+  const sortData = details.sort((a, b) => a.name.localeCompare(b.name));
   const totalDetailPages = Math.ceil(details.length / PAGE_SIZE);
 
   const paginatedSearchResult = () => {
@@ -106,6 +108,23 @@ const Details = () => {
 
   const changePage = (page) => {
     setCurrentPage(page);
+  };
+
+  const renderPageNumbers = (totalPages, currentPage) => {
+    const pageNumbers = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pageNumbers.push(
+        <Button
+          key={i}
+          variant={i === currentPage ? "primary" : "secondary"}
+          className="me-2"
+          onClick={() => changePage(i)}
+        >
+          {i}
+        </Button>
+      );
+    }
+    return pageNumbers;
   };
 
   return (
@@ -121,7 +140,11 @@ const Details = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Button variant="primary" className="mb-2" onClick={handleSearch}>
+            <Button
+              variant="primary"
+              className="submit-button"
+              onClick={handleSearch}
+            >
               Search
             </Button>
           </div>
@@ -266,6 +289,7 @@ const Details = () => {
               >
                 Previous Page
               </Button>
+              {renderPageNumbers(totalSearchPages, currentPage)}
               <Button
                 variant="secondary"
                 onClick={() => changePage(currentPage + 1)}
@@ -276,6 +300,10 @@ const Details = () => {
             </div>
           )}
         </div>
+      ) : searchResult.length === 0 && search !== "" ? (
+        <Alert variant="info" className="mt-3">
+          No records found.
+        </Alert>
       ) : (
         details.length > 0 && (
           <div className="table-container">
@@ -331,6 +359,7 @@ const Details = () => {
                 >
                   Previous Page
                 </Button>
+                {renderPageNumbers(totalDetailPages, currentPage)}
                 <Button
                   variant="secondary"
                   onClick={() => changePage(currentPage + 1)}

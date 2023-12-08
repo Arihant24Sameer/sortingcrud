@@ -1,7 +1,5 @@
-/* styles.css */
-
 .container {
-  max-width: 800px;
+  max-width: 687px;
   margin: auto;
 }
 
@@ -67,18 +65,17 @@
   justify-content: space-between;
 }
 
-/* table.css */
 
 .table {
   margin-top: 20px;
 }
 
-th, td {
+th,
+td {
   text-align: center;
 }
 
-.table th, .table td {
+.table th,
+.table td {
   vertical-align: middle;
 }
-
-/* Adjust the table styling as needed */
