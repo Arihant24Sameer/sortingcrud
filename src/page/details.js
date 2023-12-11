@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useFormik } from "formik";
-import * as Yup from "yup";
 import { Button, Table, Alert } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./table.css";
@@ -8,66 +6,26 @@ import "./styles.css";
 
 const PAGE_SIZE = 5;
 
-const Details = () => {
+const UserDetails = () => {
   const [details, setDetails] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [searchResult, setSearchResult] = useState([]);
   const [msg, setMsg] = useState(false);
-  const validationSchema = Yup.object().shape({
-    firstName: Yup.string()
-      .matches(/^[A-Za-z\s]+$/, "Invalid name")
-      .trim()
-      .required("First Name is required"),
-    lastName: Yup.string()
-      .matches(/^[A-Za-z\s]+$/, "Invalid name")
-      .trim(),
-    email: Yup.string()
-      .email("Invalid email")
-      .matches(
-        /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
-        "Enter a valid email address"
-      )
-      .trim()
-      .min(2, "Email address should contain at least 2 characters")
-      .required("Email is required"),
-    phone: Yup.string()
-      .matches(/^\d+$/, "Phone should contain only numbers")
-      .min(10, "Phone should be at least 10 digits")
-      .max(10, "Phone should not exceed 10 digits")
-      .required("Phone is required"),
+  const [input, setInput] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
   });
-
-  const formik = useFormik({
-    initialValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-    },
-    validationSchema,
-    onSubmit: (values) => {
-      const fullName = `${values.firstName} ${values.lastName || ""}`;
-
-      if (editIndex !== null) {
-        const updatedDetails = [...details];
-        updatedDetails[editIndex] = { ...values, name: fullName };
-        setDetails(updatedDetails);
-        setEditIndex(null);
-      } else {
-        setDetails([...details, { ...values, name: fullName }]);
-      }
-
-      setSearchResult([]);
-      formik.resetForm();
-    },
-  });
+  const [validationErrors, setValidationErrors] = useState({});
 
   const deleteItem = (index) => {
     const updatedDetails = [...details];
     updatedDetails.splice(index, 1);
     setDetails(updatedDetails);
+    setInput({ firstName: "", lastName: "", email: "", phone: "" });
 
     const newTotalDetailPages = Math.ceil(updatedDetails.length / PAGE_SIZE);
     if (currentPage > newTotalDetailPages) {
@@ -77,7 +35,6 @@ const Details = () => {
 
   const handleSearch = () => {
     const searchTerms = search.toLowerCase().trim().split(" ");
-
     const foundItems = details.filter((item) =>
       searchTerms.every((term) =>
         Object.values(item).some((value) =>
@@ -93,59 +50,76 @@ const Details = () => {
     }
     setSearchResult(foundItems);
     setSearch("");
-
     setEditIndex(null);
+    setCurrentPage(1); // Reset currentPage to 1 for search results
   };
 
   const editData = (index) => {
     setEditIndex(index);
     const { firstName, lastName, email, phone } = details[index];
-    formik.setValues({ firstName, lastName, email, phone });
+    setInput({ firstName, lastName, email, phone });
+    setCurrentPage(Math.ceil((index + 1) / PAGE_SIZE)); // Set the current page based on the clicked index
   };
 
-  const paginatedDetails = () => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-    const endIndex = startIndex + PAGE_SIZE;
-    return sortData.slice(startIndex, endIndex);
+  const validateInputs = () => {
+    const errors = {};
+    if (!input.firstName.trim()) {
+      errors.firstName = "First Name is required";
+    } else if (!/^[A-Za-z]{3,}$/.test(input.firstName)) {
+      errors.firstName = "First Name should contain at least 3 letters";
+    }
+    if (!input.email.trim()) {
+      errors.email = "Email is required";
+    } else if (
+      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(input.email)
+    ) {
+      errors.email = "Invalid email format";
+    }
+    if (!input.phone.trim()) {
+      errors.phone = "Phone is required";
+    } else if (!/^\d{10}$/.test(input.phone)) {
+      errors.phone = "Invalid phone number";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const sortData = details.sort((a, b) => a.name.localeCompare(b.name));
+  const handleSubmit = (e) => {
+    e.preventDefault();
 
-  const totalDetailPages = Math.ceil(details.length / PAGE_SIZE);
+    if (!validateInputs()) {
+      return;
+    }
 
-  const paginatedSearchResult = () => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
-    const endIndex = startIndex + PAGE_SIZE;
-    return searchResult.slice(startIndex, endIndex);
-  };
+    if (editIndex !== null) {
+      const updatedDetails = [...details];
+      updatedDetails[editIndex] = { ...input };
+      setDetails(updatedDetails);
+      setEditIndex(null);
+    } else {
+      setDetails([...details, input]);
+    }
 
-  const totalSearchPages = Math.ceil(searchResult.length / PAGE_SIZE);
+    setSearchResult([]);
+    setCurrentPage(1);
 
-  const changePage = (page) => {
-    setCurrentPage(page);
-  };
-
-  const renderPageNumbers = (totalPages, currentPage) => {
-    return (
-      <div className="d-flex justify-content-center mb-3">
-        {Array.from({ length: totalPages }, (_, index) => (
-          <Button
-            key={index + 1}
-            variant={index + 1 === currentPage ? "primary" : "secondary"}
-            className="me-2"
-            onClick={() => changePage(index + 1)}
-          >
-            {index + 1}
-          </Button>
-        ))}
-      </div>
-    );
+    setInput({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+    });
+    setValidationErrors({});
   };
 
   const renderContent = () => {
-    if (details.length === 0) {
+    if (details.length === 0 && searchResult.length === 0) {
       return null;
     }
+
+    const showPaginationDetails = details.length > PAGE_SIZE;
+    const showPaginationSearchResult = searchResult.length > PAGE_SIZE;
 
     if (searchResult.length > 0) {
       return (
@@ -161,7 +135,7 @@ const Details = () => {
               </tr>
             </thead>
             <tbody>
-              {paginatedSearchResult().map((item, index) => (
+              {paginatedDetails().map((item, index) => (
                 <tr key={index}>
                   <td>{item.firstName}</td>
                   <td>{item.lastName}</td>
@@ -172,9 +146,14 @@ const Details = () => {
             </tbody>
           </Table>
 
-          <div className="d-flex justify-content-center mb-2">
-            {renderPageNumbers(totalSearchPages, currentPage)}
-          </div>
+          {showPaginationSearchResult && (
+            <div className="d-flex justify-content-center mb-2">
+              {renderPageNumbers(
+                Math.ceil(searchResult.length / PAGE_SIZE),
+                searchResult
+              )}
+            </div>
+          )}
         </div>
       );
     } else if (msg === true) {
@@ -205,19 +184,12 @@ const Details = () => {
                   <td>{item.email}</td>
                   <td>{item.phone}</td>
                   <td>
-                    <Button
-                      variant="danger"
-                      onClick={() =>
-                        deleteItem((currentPage - 1) * PAGE_SIZE + index)
-                      }
-                    >
+                    <Button variant="danger" onClick={() => deleteItem(index)}>
                       Delete
                     </Button>
                     <Button
                       variant="warning"
-                      onClick={() =>
-                        editData((currentPage - 1) * PAGE_SIZE + index)
-                      }
+                      onClick={() => editData(index)}
                       className="ms-2"
                     >
                       Edit
@@ -228,14 +200,47 @@ const Details = () => {
             </tbody>
           </Table>
 
-          {details.length > PAGE_SIZE && (
+          {showPaginationDetails && (
             <div className="d-flex justify-content-center mb-2">
-              {renderPageNumbers(totalDetailPages, currentPage)}
+              {renderPageNumbers(
+                Math.ceil(details.length / PAGE_SIZE),
+                details
+              )}
             </div>
           )}
         </div>
       );
     }
+  };
+
+  const renderPageNumbers = (totalPages, array) => {
+    return (
+      <div className="d-flex justify-content-center mb-3">
+        {Array.from({ length: totalPages }, (_, index) => (
+          <Button
+            key={index + 1}
+            variant={index + 1 === currentPage ? "primary" : "secondary"}
+            className="me-2"
+            onClick={() => setCurrentPage(index + 1)}
+          >
+            {index + 1}
+          </Button>
+        ))}
+      </div>
+    );
+  };
+
+  const paginatedDetails = () => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const endIndex = startIndex + PAGE_SIZE;
+    return sortData(searchResult.length > 0 ? searchResult : details).slice(
+      startIndex,
+      endIndex
+    );
+  };
+
+  const sortData = (data) => {
+    return data.sort((a, b) => a.firstName.localeCompare(b.firstName));
   };
 
   return (
@@ -244,7 +249,9 @@ const Details = () => {
         <nav className="navbar navbar-light bg-light search-box">
           <div className="d-flex">
             <input
-              className="form-control me-2"
+              className={`form-control me-2 ${
+                validationErrors.search ? "is-invalid" : ""
+              }`}
               type="search"
               placeholder="Search"
               aria-label="Search"
@@ -259,10 +266,13 @@ const Details = () => {
               Search
             </Button>
           </div>
+          {validationErrors.search && (
+            <div className="invalid-feedback">{validationErrors.search}</div>
+          )}
         </nav>
       )}
 
-      <form onSubmit={formik.handleSubmit} className="form-box">
+      <form onSubmit={handleSubmit} className="form-box">
         <div className="mb-3">
           <h2>Register Now</h2>
           <hr></hr>
@@ -273,24 +283,20 @@ const Details = () => {
                 placeholder="First Name"
                 name="firstName"
                 className={`form-control ${
-                  formik.touched.firstName && formik.errors.firstName
-                    ? "error"
-                    : ""
+                  validationErrors.firstName ? "is-invalid" : ""
                 }`}
-                onChange={(e) => {
-                  const inputValue = e.target.value.replace(/[^A-Za-z\s]/g, "");
-                  formik.handleChange({
-                    target: {
-                      name: "firstName",
-                      value: inputValue,
-                    },
-                  });
-                }}
-                onBlur={formik.handleBlur}
-                value={formik.values.firstName}
+                value={input.firstName}
+                onChange={(e) =>
+                  setInput({
+                    ...input,
+                    firstName: e.target.value.replace(/[^A-Za-z\s]/g, ""),
+                  })
+                }
               />
-              {formik.touched.firstName && formik.errors.firstName && (
-                <div className="text-danger">{formik.errors.firstName}</div>
+              {validationErrors.firstName && (
+                <div className="invalid-feedback">
+                  {validationErrors.firstName}
+                </div>
               )}
             </div>
             <div className="col-sm-6">
@@ -298,27 +304,15 @@ const Details = () => {
                 type="text"
                 placeholder="Last Name(optional)"
                 name="lastName"
-                className={`form-control ${
-                  formik.touched.lastName && formik.errors.lastName
-                    ? "error"
-                    : ""
-                }`}
-                onChange={(e) => {
-                  const inputValue = e.target.value.replace(/[^A-Za-z\s]/g, "");
-                  console.log(inputValue, "input value for last name ");
-                  formik.handleChange({
-                    target: {
-                      name: "lastName",
-                      value: inputValue,
-                    },
-                  });
-                }}
-                onBlur={formik.handleBlur}
-                value={formik.values.lastName}
+                className="form-control"
+                onChange={(e) =>
+                  setInput({
+                    ...input,
+                    lastName: e.target.value.replace(/[^A-Za-z\s]/g, ""),
+                  })
+                }
+                value={input.lastName}
               />
-              {formik.touched.lastName && formik.errors.lastName && (
-                <div className="text-danger">{formik.errors.lastName}</div>
-              )}
             </div>
           </div>
 
@@ -328,14 +322,18 @@ const Details = () => {
               placeholder="Email"
               name="email"
               className={`form-control ${
-                formik.touched.email && formik.errors.email ? "error" : ""
+                validationErrors.email ? "is-invalid" : ""
               }`}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              value={formik.values.email}
+              onChange={(e) =>
+                setInput({
+                  ...input,
+                  email: e.target.value.replace(/[^A-Za-z0-9@_\.-]/g, ""),
+                })
+              }
+              value={input.email}
             />
-            {formik.touched.email && formik.errors.email && (
-              <div className="text-danger">{formik.errors.email}</div>
+            {validationErrors.email && (
+              <div className="invalid-feedback">{validationErrors.email}</div>
             )}
           </div>
 
@@ -345,19 +343,18 @@ const Details = () => {
               placeholder="Phone"
               name="phone"
               className={`form-control ${
-                formik.touched.phone && formik.errors.phone ? "error" : ""
+                validationErrors.phone ? "is-invalid" : ""
               }`}
-              onBlur={formik.handleBlur}
-              value={formik.values.phone}
-              onChange={(e) => {
-                const inputValue = e.target.value.replace(/\D/g, "");
-                formik.handleChange(e);
-                formik.setFieldValue("phone", inputValue.substring(0, 10));
-              }}
-              maxLength="10"
+              value={input.phone}
+              onChange={(e) =>
+                setInput({
+                  ...input,
+                  phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                })
+              }
             />
-            {formik.touched.phone && formik.errors.phone && (
-              <div className="text-danger">{formik.errors.phone}</div>
+            {validationErrors.phone && (
+              <div className="invalid-feedback">{validationErrors.phone}</div>
             )}
           </div>
 
@@ -372,4 +369,4 @@ const Details = () => {
   );
 };
 
-export default Details;
+export default UserDetails;
