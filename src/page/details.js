@@ -51,14 +51,16 @@ const UserDetails = () => {
     setSearchResult(foundItems);
     setSearch("");
     setEditIndex(null);
-    setCurrentPage(1); // Reset currentPage to 1 for search results
+    setCurrentPage(1);
   };
 
   const editData = (index) => {
     setEditIndex(index);
     const { firstName, lastName, email, phone } = details[index];
     setInput({ firstName, lastName, email, phone });
-    setCurrentPage(Math.ceil((index + 1) / PAGE_SIZE)); // Set the current page based on the clicked index
+
+    const clickedPageIndex = Math.ceil((index + 1) / PAGE_SIZE);
+    setCurrentPage(clickedPageIndex);
   };
 
   const validateInputs = () => {
@@ -293,6 +295,7 @@ const UserDetails = () => {
                   })
                 }
               />
+
               {validationErrors.firstName && (
                 <div className="invalid-feedback">
                   {validationErrors.firstName}
