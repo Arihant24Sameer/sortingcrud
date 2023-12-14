@@ -1,6 +1,14 @@
-import React, { useState } from "react";
-import { Button, Table, Alert } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Alert } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import validateInputs from "../component/validation";
+import Button from "../component/button";
+import CustomPagination from "../component/paginatedItems";
+import CustomTable from "../component/table";
+import Input from "../component/input";
+import SearchComponent from "../component/search";
 import "./table.css";
 import "./styles.css";
 
@@ -20,6 +28,7 @@ const UserDetails = () => {
     phone: "",
   });
   const [validationErrors, setValidationErrors] = useState({});
+  const [sortedData, setSortedData] = useState([]);
 
   const deleteItem = (index) => {
     const updatedDetails = [...details];
@@ -34,11 +43,18 @@ const UserDetails = () => {
   };
 
   const handleSearch = () => {
-    const searchTerms = search.toLowerCase().trim().split(" ");
+    const trimmedSearch = search.trim();
+    console.log("handleSearch");
+    if (trimmedSearch === "") {
+      return;
+    }
+
+    const searchTerms = trimmedSearch.toLowerCase().split(" ");
     const foundItems = details.filter((item) =>
-      searchTerms.every((term) =>
-        Object.values(item).some((value) =>
-          String(value).toLowerCase().includes(term)
+      searchTerms.some((term) =>
+        ["firstName", "email", "phone"].some(
+          (field) =>
+            item[field] && String(item[field]).toLowerCase().includes(term)
         )
       )
     );
@@ -48,71 +64,59 @@ const UserDetails = () => {
     } else {
       setMsg(false);
     }
+
+    setValidationErrors({
+      ...validationErrors,
+      search: foundItems.length === 0 ? "No matching records found" : "",
+    });
+
     setSearchResult(foundItems);
     setSearch("");
     setEditIndex(null);
     setCurrentPage(1);
-  };
 
+    if (foundItems.length === 0) {
+      setSearchResult([]);
+    }
+  };
+  useEffect(() => {
+    console.log("Sorted Data:", sortedData);
+  }, [sortedData]);
   const editData = (index) => {
-    setEditIndex(index);
-    const { firstName, lastName, email, phone } = details[index];
+    const originalIndex = (currentPage - 1) * PAGE_SIZE + index;
+    setEditIndex(originalIndex);
+    const { firstName, lastName, email, phone } = details[originalIndex];
     setInput({ firstName, lastName, email, phone });
-
-    const clickedPageIndex = Math.ceil((index + 1) / PAGE_SIZE);
-    setCurrentPage(clickedPageIndex);
   };
 
-  const validateInputs = () => {
-    const errors = {};
-    if (!input.firstName.trim()) {
-      errors.firstName = "First Name is required";
-    } else if (!/^[A-Za-z]{3,}$/.test(input.firstName)) {
-      errors.firstName = "First Name should contain at least 3 letters";
-    }
-    if (!input.email.trim()) {
-      errors.email = "Email is required";
-    } else if (
-      !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(input.email)
-    ) {
-      errors.email = "Invalid email format";
-    }
-    if (!input.phone.trim()) {
-      errors.phone = "Phone is required";
-    } else if (!/^\d{10}$/.test(input.phone)) {
-      errors.phone = "Invalid phone number";
-    }
-
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleSubmit = (e) => {
+  const handleClick = (e) => {
     e.preventDefault();
+    console.log("handleClick submit...");
+    const errors = validateInputs(input);
 
-    if (!validateInputs()) {
-      return;
-    }
+    if (Object.keys(errors).length === 0) {
+      if (editIndex !== null) {
+        const updatedDetails = [...details];
+        updatedDetails[editIndex] = { ...input };
+        setDetails(updatedDetails);
+        setEditIndex(null);
+      } else {
+        setDetails([...details, input]);
+      }
 
-    if (editIndex !== null) {
-      const updatedDetails = [...details];
-      updatedDetails[editIndex] = { ...input };
-      setDetails(updatedDetails);
-      setEditIndex(null);
+      setSearchResult([]);
+      setCurrentPage(1);
+
+      setInput({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+      });
+      setValidationErrors({});
     } else {
-      setDetails([...details, input]);
+      setValidationErrors(errors);
     }
-
-    setSearchResult([]);
-    setCurrentPage(1);
-
-    setInput({
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-    });
-    setValidationErrors({});
   };
 
   const renderContent = () => {
@@ -121,39 +125,37 @@ const UserDetails = () => {
     }
 
     const showPaginationDetails = details.length > PAGE_SIZE;
-    const showPaginationSearchResult = searchResult.length > PAGE_SIZE;
+    const showSearchPagination =
+      searchResult.length > 0 && searchResult.length > PAGE_SIZE;
 
     if (searchResult.length > 0) {
       return (
         <div className="table-container">
-          <h2>Search Result:</h2>
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedDetails().map((item, index) => (
-                <tr key={index}>
-                  <td>{item.firstName}</td>
-                  <td>{item.lastName}</td>
-                  <td>{item.email}</td>
-                  <td>{item.phone}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-
-          {showPaginationSearchResult && (
+          <nav className="navbar navbar-light bg-light search-box">
+            <h2>Search Result</h2>
+            <div className="d-flex">
+              <SearchComponent
+                value={search}
+                onChange={(value) => setSearch(value)}
+                onSearch={handleSearch}
+              />
+            </div>
+            {validationErrors.search && (
+              <div className="invalid-feedback">{validationErrors.search}</div>
+            )}
+          </nav>
+          <CustomTable
+            data={paginatedDetails()}
+            deleteItem={deleteItem}
+            editData={editData}
+          />
+          {showSearchPagination && (
             <div className="d-flex justify-content-center mb-2">
-              {renderPageNumbers(
-                Math.ceil(searchResult.length / PAGE_SIZE),
-                searchResult
-              )}
+              <CustomPagination
+                totalPages={Math.ceil(searchResult.length / PAGE_SIZE)}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+              />
             </div>
           )}
         </div>
@@ -161,53 +163,60 @@ const UserDetails = () => {
     } else if (msg === true) {
       return (
         <Alert variant="info" className="mt-3">
-          No records found
+          No records found. Would you like to search other record?
+          <Button
+            variant="primary"
+            className="ms-2"
+            onClick={() => setMsg(false)}
+          >
+            <FontAwesomeIcon icon={faArrowLeft} /> back
+          </Button>
         </Alert>
       );
     } else {
       return (
         <div className="table-container">
-          <h2>Submitted Details:</h2>
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th>First Name</th>
-                <th>Last Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedDetails().map((item, index) => (
-                <tr key={index}>
-                  <td>{item.firstName}</td>
-                  <td>{item.lastName}</td>
-                  <td>{item.email}</td>
-                  <td>{item.phone}</td>
-                  <td>
-                    <Button variant="danger" onClick={() => deleteItem(index)}>
-                      Delete
-                    </Button>
-                    <Button
-                      variant="warning"
-                      onClick={() => editData(index)}
-                      className="ms-2"
-                    >
-                      Edit
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-
+          {details.length > 0 && (
+            <nav className="navbar navbar-light bg-light search-box">
+              <h2>Submitted Details</h2>
+              <div className="d-flex">
+                <Input
+                  type="search"
+                  placeholder="Search your record here !!"
+                  aria-label="Search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <Button
+                  variant="primary"
+                  className="submit-button"
+                  onClick={handleSearch}
+                >
+                  Search
+                </Button>
+              </div>
+              {validationErrors.search && (
+                <div className="invalid-feedback">
+                  {validationErrors.search}
+                </div>
+              )}
+            </nav>
+          )}
+          <CustomTable
+            data={
+              sortedData.length > 0 ? paginatedDetails() : paginatedDetails()
+            }
+            deleteItem={deleteItem}
+            editData={editData}
+            onClick={sortData}
+          />
           {showPaginationDetails && (
             <div className="d-flex justify-content-center mb-2">
-              {renderPageNumbers(
-                Math.ceil(details.length / PAGE_SIZE),
-                details
-              )}
+              <CustomPagination
+                totalPages={Math.ceil(details.length / PAGE_SIZE)}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+              />
             </div>
           )}
         </div>
@@ -215,78 +224,41 @@ const UserDetails = () => {
     }
   };
 
-  const renderPageNumbers = (totalPages, array) => {
-    return (
-      <div className="d-flex justify-content-center mb-3">
-        {Array.from({ length: totalPages }, (_, index) => (
-          <Button
-            key={index + 1}
-            variant={index + 1 === currentPage ? "primary" : "secondary"}
-            className="me-2"
-            onClick={() => setCurrentPage(index + 1)}
-          >
-            {index + 1}
-          </Button>
-        ))}
-      </div>
-    );
-  };
-
   const paginatedDetails = () => {
     const startIndex = (currentPage - 1) * PAGE_SIZE;
     const endIndex = startIndex + PAGE_SIZE;
-    return sortData(searchResult.length > 0 ? searchResult : details).slice(
-      startIndex,
-      endIndex
-    );
+    const dataToDisplay = searchResult.length > 0 ? searchResult : details;
+    // return dataToDisplay(searchResult.length > 0 ? searchResult : details).slice(
+    //   startIndex,
+    //   endIndex
+    // );
+    return dataToDisplay.slice(startIndex, endIndex);
   };
 
   const sortData = (data) => {
-    return data.sort((a, b) => a.firstName.localeCompare(b.firstName));
+    console.log(
+      "cliked !!",
+      data.sort((a, b) => a.firstName.localeCompare(b.firstName))
+    );
+    const updatedData = data.sort((a, b) =>
+      a.firstName.localeCompare(b.firstName)
+    );
+    setSortedData(updatedData);
+    // return data.sort((a, b) => a.firstName.localeCompare(b.firstName));
   };
-
+  console.log(sortedData, "sortedData");
+  console.log(details, "details array data ");
   return (
     <div className="container mt-5">
-      {details.length > 0 && (
-        <nav className="navbar navbar-light bg-light search-box">
-          <div className="d-flex">
-            <input
-              className={`form-control me-2 ${
-                validationErrors.search ? "is-invalid" : ""
-              }`}
-              type="search"
-              placeholder="Search"
-              aria-label="Search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <Button
-              variant="primary"
-              className="submit-button"
-              onClick={handleSearch}
-            >
-              Search
-            </Button>
-          </div>
-          {validationErrors.search && (
-            <div className="invalid-feedback">{validationErrors.search}</div>
-          )}
-        </nav>
-      )}
-
-      <form onSubmit={handleSubmit} className="form-box">
+      <form className="form-box">
         <div className="mb-3">
           <h2>Register Now</h2>
-          <hr></hr>
+          <hr />
           <div className="mb-3 row">
             <div className="col-sm-6">
-              <input
+              <Input
                 type="text"
                 placeholder="First Name"
-                name="firstName"
-                className={`form-control ${
-                  validationErrors.firstName ? "is-invalid" : ""
-                }`}
                 value={input.firstName}
                 onChange={(e) =>
                   setInput({
@@ -294,8 +266,10 @@ const UserDetails = () => {
                     firstName: e.target.value.replace(/[^A-Za-z\s]/g, ""),
                   })
                 }
+                className={`form-control ${
+                  validationErrors.firstName ? "is-invalid" : ""
+                }`}
               />
-
               {validationErrors.firstName && (
                 <div className="invalid-feedback">
                   {validationErrors.firstName}
@@ -303,10 +277,9 @@ const UserDetails = () => {
               )}
             </div>
             <div className="col-sm-6">
-              <input
+              <Input
                 type="text"
                 placeholder="Last Name(optional)"
-                name="lastName"
                 className="form-control"
                 onChange={(e) =>
                   setInput({
@@ -320,10 +293,9 @@ const UserDetails = () => {
           </div>
 
           <div className="mb-3">
-            <input
+            <Input
               type="text"
               placeholder="Email"
-              name="email"
               className={`form-control ${
                 validationErrors.email ? "is-invalid" : ""
               }`}
@@ -341,10 +313,9 @@ const UserDetails = () => {
           </div>
 
           <div className="mb-3">
-            <input
+            <Input
               type="text"
               placeholder="Phone"
-              name="phone"
               className={`form-control ${
                 validationErrors.phone ? "is-invalid" : ""
               }`}
@@ -361,7 +332,12 @@ const UserDetails = () => {
             )}
           </div>
 
-          <Button variant="primary" className="mb-2" type="submit">
+          <Button
+            variant="primary"
+            type="submit"
+            name="searchButton"
+            onClick={handleClick}
+          >
             {editIndex !== null ? "Update" : "Submit"}
           </Button>
         </div>

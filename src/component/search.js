@@ -1,22 +1,25 @@
-// Modal.js
+// SearchComponent.js
+import React from "react";
+import { Button } from "react-bootstrap";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch } from "@fortawesome/free-solid-svg-icons";
 
-import React from 'react';
-import { Modal as BootstrapModal, Button } from 'react-bootstrap';
-
-const Modal = ({ show, onClose, children }) => {
+const SearchComponent = ({ value, onChange, onSearch }) => {
   return (
-    <BootstrapModal show={show} onHide={onClose}>
-      <BootstrapModal.Header closeButton>
-        <BootstrapModal.Title>Search Result</BootstrapModal.Title>
-      </BootstrapModal.Header>
-      <BootstrapModal.Body>{children}</BootstrapModal.Body>
-      <BootstrapModal.Footer>
-        <Button variant="secondary" onClick={onClose}>
-          Close
-        </Button>
-      </BootstrapModal.Footer>
-    </BootstrapModal>
+    <div className="d-flex">
+      <input
+        type="search"
+        placeholder="Search your record !!"
+        aria-label="Search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <Button variant="primary" className="submit-button" onClick={onSearch}>
+        <FontAwesomeIcon icon={faSearch} />
+        Search
+      </Button>
+    </div>
   );
 };
 
-export default Modal;
+export default SearchComponent;

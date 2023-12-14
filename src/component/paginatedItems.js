@@ -1,41 +1,25 @@
-import React, { useState } from "react";
-import ReactPaginate from "react-paginate";
+import React from "react";
+import { Button } from "react-bootstrap";
 
-const PaginatedItems = ({ itemsPerPage, items }) => {
-  const [itemOffset, setItemOffset] = useState(0);
-
-  const currentItems = items.slice(itemOffset, itemOffset + itemsPerPage);
-  const pageCount = Math.ceil(items.length / itemsPerPage);
-
-  const handlePageClick = (event) => {
-    const newOffset = (event.selected * itemsPerPage) % items.length;
-    setItemOffset(newOffset);
-  };
-
+const CustomPagination = ({ totalPages, currentPage, setCurrentPage }) => {
+  const pageNumbers = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i);
+  }
   return (
-    <>
-      <div>
-        {items.map((item) => (
-          <div key={item.id}>
-            <p>First Name: {item.firstName}</p>
-            <p>Last Name: {item.lastName}</p>
-            <p>Email: {item.email}</p>
-            <p>Phone: {item.phone}</p>
-          </div>
-        ))}
-      </div>
-
-      <ReactPaginate
-        breakLabel="..."
-        nextLabel="next >"
-        onPageChange={handlePageClick}
-        pageRangeDisplayed={5}
-        pageCount={pageCount}
-        previousLabel="< previous"
-        renderOnZeroPageCount={null}
-      />
-    </>
+    <div className="d-flex justify-content-center mb-3">
+      {pageNumbers.map((pageNumber) => (
+        <Button
+          key={pageNumber}
+          variant={pageNumber === currentPage ? "primary" : "secondary"}
+          className="me-2"
+          onClick={() => setCurrentPage(pageNumber)}
+        >
+          {pageNumber}
+        </Button>
+      ))}
+    </div>
   );
 };
 
-export default PaginatedItems;
+export default CustomPagination;
